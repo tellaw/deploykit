@@ -2,6 +2,8 @@
 
 REMOTE_SERVER_PATH="/home/ewallet/remote-dev";
 REMOTE_SERVER_ADDRESS="ewallet@10.10.0.35";
+REMOTE_UPDATE_URL="https://raw.githubusercontent.com/tellaw/deploykit/master/deployDevKit";
+
 
 LOCAL_ROOT_DIRECTORY="/data";
 opt="$1";
@@ -29,7 +31,12 @@ commands_kit()
 auto_update()
 {
 	echo "Updating service";
-	sudo scp $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/devkit /data/devkit
+	sudo wget $REMOTE_UPDATE_URL
+
+if ! [ $? -eq 0 ]; then
+	echo -e "${RED}* ${NC}Unable to update. Please download manually from $REMOTE_UPDATE_URL";
+fi
+
 }
 
 init_kit()
@@ -40,23 +47,23 @@ init_kit()
 	# Check if data directory exists
 	if [ -d "$LOCAL_ROOT_DIRECTORY" ]; then
   		# Control will enter here if $DIRECTORY exists.
-		echo "Service has already been initialized";
+		echo -e "${RED}* ${NC}Service has already been initialized";
 		exit;
 	fi
 
 	# Create directories
-	echo "creating structure";
+	echo -e "${RED}* ${NC}creating structure";
 	mkdir "$LOCAL_ROOT_DIRECTORY";
-	echo "done...";
+	echo -e "${RED}* ${NC}done...";
 
 }
 
 push_kit()
 {
 
-	echo "Push Dev kit ($name) to remote server";
+	echo -e "${RED}* ${NC}Push Dev kit ($name) to remote server";
 
-	echo "Checking if remote server handle this project...";
+	echo -e "${RED}* ${NC}Checking if remote server handle this project...";
 
 	# Check if kit exists
 	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
@@ -66,13 +73,13 @@ push_kit()
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
 
-			echo "Pushing kit DOCKER to REMOTE : $name";
+			echo -e "${RED}* ${NC}Pushing kit DOCKER to REMOTE : $name";
 			rsync -ah $LOCAL_ROOT_DIRECTORY/docker/$name/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker
 
-			echo "Pushing sources to REMOTE";
+			echo -e "${RED}* ${NC}Pushing sources to REMOTE";
 			rsync -ah $LOCAL_ROOT_DIRECTORY/src/$name/shared/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src
 		else
-			echo "Service is not available on REMOTE SERVER";
+			echo -e "${RED}* ${NC}Service is not available on REMOTE SERVER";
 			exit;
 	fi
 
@@ -80,9 +87,8 @@ push_kit()
 
 pull_kit()
 {
-	echo "Pull Dev kit ($name) from remote server";
-
-	echo "Checking if remote server handle this project...";
+	echo -e "${RED}* ${NC}Pull Dev kit ($name) from remote server";
+	echo -e "${RED}* ${NC}Checking if remote server handle this project...";
 
 	# Check if kit exists
 	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
@@ -139,33 +145,27 @@ pull_kit()
 
 add_kit()
 {
-	echo "Add kit to remote server";
+	echo -e "${RED}**** ${NC}Add kit to remote server";
 
 	# Check if remote server exists
 	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
 		then
-			echo "Remote kit is already available : $name";
+			echo -e "${RED}**** ${NC}Remote kit is already available : $name";
 			exit;
 	fi
 
-	echo "Create new kit to remote server";
-
+	echo -e "${RED}**** ${NC}Create new kit to remote server";
 	ssh $REMOTE_SERVER_ADDRESS "mkdir $REMOTE_SERVER_PATH/$name"
 
-	echo "Add new kit to the list of services";
-
-	# Add kit to list
-	ssh $REMOTE_SERVER_ADDRESS "echo '$name' >>  $REMOTE_SERVER_PATH/services.txt"
-
-	echo "services added to the remote repository";
+	echo -e "${RED}**** ${NC}services added to the remote repository";
 }
 
 list_kit()
 {
-	echo "List remote kit from server";
+	echo -e "${RED}**** ${NC}List remote kit from server";
 
 	# Get remote file of listing
-	ssh $REMOTE_SERVER_ADDRESS "cat $REMOTE_SERVER_PATH/services.txt"
+	ssh $REMOTE_SERVER_ADDRESS "ls -lah $REMOTE_SERVER_PATH"
 
 	# List values
 
