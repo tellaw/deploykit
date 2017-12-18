@@ -1,0 +1,166 @@
+#!/bin/bash
+# Array => http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_10_02.html
+# files testing => https://www.cyberciti.biz/faq/unix-linux-test-existence-of-file-in-bash/
+LOCAL_ROOT_DIRECTORY='/var/www/html'
+GIT_REPOSITORY='https://wekaservices@bitbucket.org/teamwekaservices/teamtracking.git'
+
+# Configurer les liens
+SHARED_FILES=('app/config/parameters.yml')
+SHARED_DIRS=('')
+
+# Options possible a surcharger via la ligne de commande
+GIT_TAG=""
+FINAL_USER='www-data'
+FINAL_GROUP='www-data'
+
+# Mettre true pour activer composer
+COMPOSER_ENABLED="ok"
+
+# Script Configuration DO NOT CHANGE
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+NB_RELEASES_RETAIN='2'
+MODE_DEV='1'
+
+# Reading arguments of command line
+while [ $# -gt 0 ]; do
+
+   if [[ $1 == *"--"* ]]; then
+        v="${1/--/}"
+        declare $v="$2"
+   fi
+
+  shift
+done
+
+if ! [ "$t" == "" ];then
+  $GIT_TAG=$t
+fi
+if ! [ "$u" == "" ];then
+  $FINAL_USER=$u
+fi
+if ! [ "$g" == "" ];then
+  $FINAL_GROUP=$g
+fi
+if ! [ "$c" == "" ];then
+  $COMPOSER_ENABLED="ok"
+fi
+
+echo -e "-----------------------------"
+echo -e "Attribut de ligne de commande"
+echo -e "-----------------------------"
+echo -e "${RED}--t TAG${NC}        : tag à cloner pour GIT"
+echo -e "${RED}--u USER_NAME${NC}  : nom du user à appliquer au système de fichier"
+echo -e "${RED}--g GROUP_NAME${NC} : nom du groupe à appliquer au système de fichier"
+echo -e "${RED}--c ${NC}           : Demande l'execution d'un composer install"
+echo -e "-----------------------------"
+
+# Check deploy directories
+## Create if not existing
+directory="$LOCAL_ROOT_DIRECTORY/releases"
+if ! [ -d "$directory" ]
+then
+  echo -e "${RED}* ${NC}Creation du dossier releases"
+  mkdir "$LOCAL_ROOT_DIRECTORY/releases"
+  if ! [ $? -eq 0 ]; then
+      echo -e "${RED}**** ${NC}Impossible créer le dossier releases"
+      exit 1
+  fi
+fi
+
+# Fin lastest directory
+cd $LOCAL_ROOT_DIRECTORY/releases
+if [ $MODE_DEV == "1" ]; then
+  BUILD_NUMBER="DEV"
+  echo -e "${RED}* ${NC}Dev MODE => build number is : $BUILD_NUMBER"
+  rm -rvf $BUILD_NUMBER
+else
+  LAST_VERSION="$(ls -td -- */ | head -n 1 | cut -d'/' -f1)"
+  BUILD_NUMBER=$(($LAST_VERSION + 1))
+  echo -e "${RED}* ${NC}Dernière release : $LAST_VERSION"
+fi
+
+# Add release DIRECTORY
+## Clone Repository
+## git clone -b 'v2.0' --single-branch https://github.com/git/git.git
+if [ "$GIT_TAG" == "" ];then
+  echo -e "${RED}* ${NC}Cloning HEAD of repository"
+  git clone $GIT_REPOSITORY $BUILD_NUMBER
+  if ! [ $? -eq 0 ]; then
+      echo -e "${RED}**** ${NC}Impossible de récupérer les sources depuis GIT"
+      exit 1
+  fi
+else
+  echo "${RED}* ${NC}Cloning Tag : $GIT_TAG of repository"
+  git clone -b $GIT_TAG --single-branch $GIT_REPOSITORY $BUILD_NUMBER
+  if ! [ $? -eq 0 ]; then
+      echo -e "${RED}**** ${NC}Impossible de récupérer les sources depuis GIT"
+      exit 1
+  fi
+fi
+
+# Create Shares symlinks
+for i in ${SHARED_FILES[@]}; do
+  echo -e "${RED}* ${NC}Linking file : $i"
+  ln -s $LOCAL_ROOT_DIRECTORY/shared/$i $LOCAL_ROOT_DIRECTORY/releases/$BUILD_NUMBER/$i
+  if ! [ $? -eq 0 ]; then
+    echo -e "${RED}**** ${NC}Impossible de faire le lien symbolique pour $i"
+    exit 1
+  fi
+done
+
+# Create Shared DIRS
+for i in ${SHARED_DIRS[@]}; do
+  echo -e "${RED}* ${NC}Linking directory : $i"
+  ln -s $LOCAL_ROOT_DIRECTORY/shared/$i $LOCAL_ROOT_DIRECTORY/releases/$BUILD_NUMBER/$i
+  if ! [ $? -eq 0 ]; then
+    echo -e "${RED}**** ${NC}Impossible de faire le lien symbolique pour $i"
+    exit 1
+  fi
+done
+
+# Install vendors
+# Composer Install
+if ! [ "COMPOSER_ENABLED" == "" ];then
+  cd $LOCAL_ROOT_DIRECTORY/releases/$BUILD_NUMBER
+  if ! composer update; then
+    echo -e "${RED}**** ${NC}Composer install FAILED"
+    exit 1
+  fi
+fi
+
+# Check rights & Users
+echo -e "${RED}* ${NC}Setting Access right and users to $FINAL_USER:$FINAL_GROUP"
+sudo chown -R $FINAL_USER:$FINAL_GROUP $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER}
+if ! [ $? -eq 0 ]; then
+  echo -e "${RED}**** ${NC}Impossible de configurer le bon utilisateur aux fichiers"
+  exit 1
+fi
+sudo find $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER} -type d -exec chmod 755 {} \;
+sudo find $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER} -type f -exec chmod 644 {} \;
+
+# Purge Old Releases
+echo -e "${RED}* ${NC}Removing old installs"
+RELEASE_TO_DELETE=$(($NB_RELEASES_RETAIN + 1))
+cd $LOCAL_ROOT_DIRECTORY/releases
+rm -rf `ls -t | tail -n +$RELEASE_TO_DELETE`
+if ! [ $? -eq 0 ]; then
+  echo -e "${RED}**** ${NC}Impossible de supprimer l'historique de releases"
+  exit 1
+fi
+
+# remove current directory
+directory="$LOCAL_ROOT_DIRECTORY/current"
+if [ -L "$directory" ]
+then
+  echo -e "${RED}* ${NC}Suppression de current"
+  rm $directory
+fi
+
+# Create CURRENT symlinks
+echo -e "${RED}* ${NC}Linking Current"
+ln -s $LOCAL_ROOT_DIRECTORY/releases/$BUILD_NUMBER $LOCAL_ROOT_DIRECTORY/current
+if ! [ $? -eq 0 ]; then
+  echo -e "${RED}**** ${NC}Impossible créer le lien symbolique pour current"
+  exit 1
+fi

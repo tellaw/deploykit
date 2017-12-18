@@ -1,0 +1,201 @@
+#!/bin/bash
+
+REMOTE_SERVER_PATH="/home/ewallet/remote-dev";
+REMOTE_SERVER_ADDRESS="ewallet@10.10.0.35";
+
+LOCAL_ROOT_DIRECTORY="/data";
+opt="$1";
+name="$2";
+myuser=$(whoami);
+mygroup=$(id -gn);
+
+# Script Configuration DO NOT CHANGE
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+commands_kit()
+{
+	echo "-------------------------------------";
+	echo "***  Dev kit commands :           ***";
+	echo "-------------------------------------";
+	echo "init : Initialize le service en local";
+	echo "list : List available services";
+	echo "push <service_name> : Push kit to remote server (override remote datas)";
+	echo "pull <service_name> : Pull kit from remote server";
+	echo "add <service_name>  : Add a kit to the remote server";
+	echo "auto-update : Update this application by the latest on the server";
+}
+
+auto_update()
+{
+	echo "Updating service";
+	sudo scp $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/devkit /data/devkit
+}
+
+init_kit()
+{
+
+	echo "Initializing...";
+
+	# Check if data directory exists
+	if [ -d "$LOCAL_ROOT_DIRECTORY" ]; then
+  		# Control will enter here if $DIRECTORY exists.
+		echo "Service has already been initialized";
+		exit;
+	fi
+
+	# Create directories
+	echo "creating structure";
+	mkdir "$LOCAL_ROOT_DIRECTORY";
+	echo "done...";
+
+}
+
+push_kit()
+{
+
+	echo "Push Dev kit ($name) to remote server";
+
+	echo "Checking if remote server handle this project...";
+
+	# Check if kit exists
+	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
+		then
+
+			# Fix Rights & Owner of files
+			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
+			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
+
+			echo "Pushing kit DOCKER to REMOTE : $name";
+			rsync -ah $LOCAL_ROOT_DIRECTORY/docker/$name/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker
+
+			echo "Pushing sources to REMOTE";
+			rsync -ah $LOCAL_ROOT_DIRECTORY/src/$name/shared/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src
+		else
+			echo "Service is not available on REMOTE SERVER";
+			exit;
+	fi
+
+}
+
+pull_kit()
+{
+	echo "Pull Dev kit ($name) from remote server";
+
+	echo "Checking if remote server handle this project...";
+
+	# Check if kit exists
+	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
+		then
+
+			# Fix Rights & Owner of files
+			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
+			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
+
+			# Updating Docker
+			echo -e "${RED}* ${NC}Syncing DOCKER";
+			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name
+
+			# Update shared
+			echo -e "${RED}* ${NC}Syncing src/shared";
+			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src/ $LOCAL_ROOT_DIRECTORY/src/$name/shared
+
+			# Stop Docker
+			cd $LOCAL_ROOT_DIRECTORY/docker/$name
+			echo -e "${RED}* ${NC}Stopping docker";
+			docker-compose down
+			if ! [ $? -eq 0 ]; then
+				echo -e "${RED}**** ${NC}Impossible de tuer les containers docker"
+				exit 1
+			fi
+
+			# Start DOCKER
+			cd $LOCAL_ROOT_DIRECTORY/docker/$name
+			echo -e "${RED}* ${NC}Starting docker";
+			docker-compose up -d
+			if ! [ $? -eq 0 ]; then
+				echo -e "${RED}**** ${NC}Impossible de lancer les containers docker"
+				exit 1
+			fi
+
+			# Run Custom script
+			if [ -e "$LOCAL_ROOT_DIRECTORY/docker/$name/share/devkit" ]
+			then
+			  echo -e "${RED}* ${NC}Lancement script custom"
+			  cd $LOCAL_ROOT_DIRECTORY/docker/$name
+				docker-compose exec php /share/devkit
+				if ! [ $? -eq 0 ]; then
+					echo -e "${RED}**** ${NC}Impossible de lancer script custom via docker"
+					exit 1
+				fi
+			fi
+
+		else
+			echo "Service is not available on REMOTE SERVER";
+			exit;
+	fi
+	echo "Done...";
+}
+
+add_kit()
+{
+	echo "Add kit to remote server";
+
+	# Check if remote server exists
+	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
+		then
+			echo "Remote kit is already available : $name";
+			exit;
+	fi
+
+	echo "Create new kit to remote server";
+
+	ssh $REMOTE_SERVER_ADDRESS "mkdir $REMOTE_SERVER_PATH/$name"
+
+	echo "Add new kit to the list of services";
+
+	# Add kit to list
+	ssh $REMOTE_SERVER_ADDRESS "echo '$name' >>  $REMOTE_SERVER_PATH/services.txt"
+
+	echo "services added to the remote repository";
+}
+
+list_kit()
+{
+	echo "List remote kit from server";
+
+	# Get remote file of listing
+	ssh $REMOTE_SERVER_ADDRESS "cat $REMOTE_SERVER_PATH/services.txt"
+
+	# List values
+
+}
+
+case "$opt" in
+	"--" ) break 2;;
+
+	"init" )
+		init_kit;
+	;;
+	"help")
+		commands_kit;
+	;;
+	"list" )
+		list_kit;
+	;;
+	"add" )
+		add_kit;
+	;;
+	"push" )
+		push_kit;
+	;;
+	"pull" )
+		pull_kit;
+	;;
+	"auto-update" )
+		auto_update;
+	;;
+	*) #default
+		commands_kit;
+	;;
+esac
