@@ -94,7 +94,28 @@ pull_kit()
 	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
 		then
 
+
+			if ! [ -d "$LOCAL_ROOT_DIRECTORY/src/$name" ]; then
+		  		# Control will enter here if $DIRECTORY exists.
+				echo -e "${RED}* ${NC}Source directory is going to be created";
+				cd $LOCAL_ROOT_DIRECTORY/src
+				mkdir $name
+				cd $LOCAL_ROOT_DIRECTORY
+			fi
+
+			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
+		  		# Control will enter here if $DIRECTORY exists.
+				echo -e "${RED}* ${NC}Docker directory is going to be created";
+				cd $LOCAL_ROOT_DIRECTORY/docker
+				mkdir $name
+				cd $LOCAL_ROOT_DIRECTORY
+			fi
+
 			# Fix Rights & Owner of files
+			echo -e "${RED}* ${NC}Fixing user and groups on directories";
+			echo -e "${RED}* ${NC}**";
+			echo -e "${RED}* ${NC}YOU MAY HAVE TO INPUT SUDO PASSWORD";
+			echo -e "${RED}* ${NC}**";
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
 
@@ -125,11 +146,11 @@ pull_kit()
 			fi
 
 			# Run Custom script
-			if [ -e "$LOCAL_ROOT_DIRECTORY/docker/$name/share/devkit" ]
+			if [ -e "$LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit" ]
 			then
 			  echo -e "${RED}* ${NC}Lancement script custom"
 			  cd $LOCAL_ROOT_DIRECTORY/docker/$name
-				docker-compose exec php /share/devkit
+				docker-compose exec php /share/deployContainerKit
 				if ! [ $? -eq 0 ]; then
 					echo -e "${RED}**** ${NC}Impossible de lancer script custom via docker"
 					exit 1

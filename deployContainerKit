@@ -71,7 +71,7 @@ fi
 # Fin lastest directory
 cd $LOCAL_ROOT_DIRECTORY/releases
 if [ $MODE_DEV == "1" ]; then
-  BUILD_NUMBER="DEV"
+  BUILD_NUMBER="sources"
   echo -e "${RED}* ${NC}Dev MODE => build number is : $BUILD_NUMBER"
   rm -rvf $BUILD_NUMBER
 else
