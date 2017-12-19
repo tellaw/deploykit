@@ -123,6 +123,7 @@ pull_kit()
 
 			# Grab docker deploy kit
 			echo -e "${RED}* ${NC}Update deployContainerKit using Git Version";
+			rm $LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit
 			curl -o $LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit https://raw.githubusercontent.com/tellaw/deploykit/master/deployContainerKit
 
 			# Stop Docker
