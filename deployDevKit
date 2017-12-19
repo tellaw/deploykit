@@ -32,18 +32,27 @@ commands_kit()
 
 start_kit()
 {
+	if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
+			echo -e "${RED}* ${NC}Le kit de dev n'existe pas sur ce poste"
+	fi
 	cd $LOCAL_ROOT_DIRECTORY/docker/$name
 	docker-compose up -d
 }
 
 startf_kit()
 {
+	if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
+			echo -e "${RED}* ${NC}Le kit de dev n'existe pas sur ce poste"
+	fi
 	cd $LOCAL_ROOT_DIRECTORY/docker/$name
 	docker-compose up
 }
 
 stop_kit()
 {
+	if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
+			echo -e "${RED}* ${NC}Le kit de dev n'existe pas sur ce poste"
+	fi
 	cd $LOCAL_ROOT_DIRECTORY/docker/$name
 	docker-compose down
 }
