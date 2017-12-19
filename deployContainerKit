@@ -1,20 +1,12 @@
 #!/bin/bash
 # Array => http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_10_02.html
 # files testing => https://www.cyberciti.biz/faq/unix-linux-test-existence-of-file-in-bash/
-LOCAL_ROOT_DIRECTORY='/var/www/html'
-GIT_REPOSITORY='https://wekaservices@bitbucket.org/teamwekaservices/teamtracking.git'
-
-# Configurer les liens
-SHARED_FILES=('app/config/parameters.yml')
-SHARED_DIRS=('')
-
-# Options possible a surcharger via la ligne de commande
-GIT_TAG=""
-FINAL_USER='www-data'
-FINAL_GROUP='www-data'
-
-# Mettre true pour activer composer
-COMPOSER_ENABLED="ok"
+if ! [ -e "/share/deploy.conf" ]; then
+  echo -e "${RED}* ${NC}Configuration file deploy.conf is not in my directory"
+  exit 1
+fi
+echo -e "${RED}* ${NC}Chargement de la configuration";
+source "/share/deploy.conf";
 
 # Script Configuration DO NOT CHANGE
 RED='\033[0;31m'
@@ -71,7 +63,7 @@ fi
 # Fin lastest directory
 cd $LOCAL_ROOT_DIRECTORY/releases
 if [ $MODE_DEV == "1" ]; then
-  BUILD_NUMBER="sources"
+  BUILD_NUMBER="$APP_NAME"
   echo -e "${RED}* ${NC}Dev MODE => build number is : $BUILD_NUMBER"
   rm -rvf $BUILD_NUMBER
 else

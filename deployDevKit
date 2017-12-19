@@ -70,6 +70,9 @@ push_kit()
 		then
 
 			# Fix Rights & Owner of files
+			echo -e "${RED}* ${NC}**";
+			echo -e "${RED}* ${NC}YOU MAY HAVE TO INPUT SUDO PASSWORD";
+			echo -e "${RED}* ${NC}**";
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
 
@@ -119,14 +122,6 @@ pull_kit()
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
 
-			# Updating Docker
-			echo -e "${RED}* ${NC}Syncing DOCKER";
-			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name
-
-			# Update shared
-			echo -e "${RED}* ${NC}Syncing src/shared";
-			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src/ $LOCAL_ROOT_DIRECTORY/src/$name/shared
-
 			# Stop Docker
 			cd $LOCAL_ROOT_DIRECTORY/docker/$name
 			echo -e "${RED}* ${NC}Stopping docker";
@@ -135,6 +130,14 @@ pull_kit()
 				echo -e "${RED}**** ${NC}Impossible de tuer les containers docker"
 				exit 1
 			fi
+
+			# Updating Docker
+			echo -e "${RED}* ${NC}Syncing DOCKER";
+			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name
+
+			# Update shared
+			echo -e "${RED}* ${NC}Syncing src/shared";
+			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src/ $LOCAL_ROOT_DIRECTORY/src/$name/shared
 
 			# Start DOCKER
 			cd $LOCAL_ROOT_DIRECTORY/docker/$name
