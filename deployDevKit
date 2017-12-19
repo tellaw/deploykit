@@ -97,7 +97,6 @@ pull_kit()
 	if ssh "$REMOTE_SERVER_ADDRESS" test -e "$REMOTE_SERVER_PATH/$name" ;
 		then
 
-
 			if ! [ -d "$LOCAL_ROOT_DIRECTORY/src/$name" ]; then
 		  		# Control will enter here if $DIRECTORY exists.
 				echo -e "${RED}* ${NC}Source directory is going to be created";
@@ -121,6 +120,10 @@ pull_kit()
 			echo -e "${RED}* ${NC}**";
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
+
+			# Grab docker deploy kit
+			echo -e "${RED}* ${NC}Update deployContainerKit using Git Version";
+			curl -o $LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit https://raw.githubusercontent.com/tellaw/deploykit/master/deployContainerKit
 
 			# Stop Docker
 			cd $LOCAL_ROOT_DIRECTORY/docker/$name
