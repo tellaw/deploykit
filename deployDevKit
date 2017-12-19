@@ -20,12 +20,32 @@ commands_kit()
 	echo "-------------------------------------";
 	echo "***  Dev kit commands :           ***";
 	echo "-------------------------------------";
-	echo "init : Initialize le service en local";
 	echo "list : List available services";
 	echo "push <service_name> : Push kit to remote server (override remote datas)";
 	echo "pull <service_name> : Pull kit from remote server";
 	echo "add <service_name>  : Add a kit to the remote server";
 	echo "auto-update : Update this application by the latest on the server";
+	echo "start : Start the dev container in background mode";
+	echo "startf : Start the dev container in foreground mode";
+	echo "stop : Stop the dev container";
+}
+
+start_kit()
+{
+	cd $LOCAL_ROOT_DIRECTORY/docker/$name
+	docker-compose up -d
+}
+
+startf_kit()
+{
+	cd $LOCAL_ROOT_DIRECTORY/docker/$name
+	docker-compose up
+}
+
+stop_kit()
+{
+	cd $LOCAL_ROOT_DIRECTORY/docker/$name
+	docker-compose down
 }
 
 auto_update()
@@ -222,6 +242,15 @@ case "$opt" in
 	;;
 	"auto-update" )
 		auto_update;
+	;;
+	"start" )
+		start_kit;
+	;;
+	"startf" )
+		start_kit;
+	;;
+	"stop" )
+		stop_kit;
 	;;
 	*) #default
 		commands_kit;
