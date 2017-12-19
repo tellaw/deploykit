@@ -155,7 +155,6 @@ pull_kit()
 
 			# Grab docker deploy kit
 			echo -e "${RED}* ${NC}Update deployContainerKit using Git Version";
-			rm $LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit
 			curl -o $LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit https://raw.githubusercontent.com/tellaw/deploykit/master/deployContainerKit
 
 			# Stop Docker
@@ -183,6 +182,9 @@ pull_kit()
 				echo -e "${RED}**** ${NC}Impossible de lancer les containers docker"
 				exit 1
 			fi
+
+			echo -e "${RED}**** ${NC}Fixing rights on container script"
+			chmod 777 $LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit
 
 			# Run Custom script
 			if [ -e "$LOCAL_ROOT_DIRECTORY/docker/$name/share/deployContainerKit" ]

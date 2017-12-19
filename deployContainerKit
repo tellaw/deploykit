@@ -122,14 +122,18 @@ if ! [ "COMPOSER_ENABLED" == "" ];then
 fi
 
 # Check rights & Users
-echo -e "${RED}* ${NC}Setting Access right and users to $FINAL_USER:$FINAL_GROUP"
-sudo chown -R $FINAL_USER:$FINAL_GROUP $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER}
-if ! [ $? -eq 0 ]; then
-  echo -e "${RED}**** ${NC}Impossible de configurer le bon utilisateur aux fichiers"
-  exit 1
+if [ $FINAL_USER -eq "" ]; then
+  echo -e "${RED}* ${NC}FINAL_USER Empty, skipping chmod and chown step"
+else
+  echo -e "${RED}* ${NC}Setting Access right and users to $FINAL_USER:$FINAL_GROUP"
+  sudo chown -R $FINAL_USER:$FINAL_GROUP $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER}
+  if ! [ $? -eq 0 ]; then
+    echo -e "${RED}**** ${NC}Impossible de configurer le bon utilisateur aux fichiers"
+    exit 1
+  fi
+  sudo find $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER} -type d -exec chmod 755 {} \;
+  sudo find $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER} -type f -exec chmod 644 {} \;
 fi
-sudo find $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER} -type d -exec chmod 755 {} \;
-sudo find $LOCAL_ROOT_DIRECTORY/releases/${BUILD_NUMBER} -type f -exec chmod 644 {} \;
 
 # Purge Old Releases
 echo -e "${RED}* ${NC}Removing old installs"
