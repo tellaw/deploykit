@@ -122,7 +122,7 @@ if ! [ "COMPOSER_ENABLED" == "" ];then
 fi
 
 # Check rights & Users
-if [ $FINAL_USER -eq "" ]; then
+if [ -z $FINAL_USER ]; then
   echo -e "${RED}* ${NC}FINAL_USER Empty, skipping chmod and chown step"
 else
   echo -e "${RED}* ${NC}Setting Access right and users to $FINAL_USER:$FINAL_GROUP"
