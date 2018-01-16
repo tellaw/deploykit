@@ -153,6 +153,13 @@ pull_kit()
 				exit 1
 			fi
 
+			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name/data" ]; then
+				echo -e "${RED}* ${NC}Le repertoire data n'existe pas. Import de la base SQL";
+				pv $LOCAL_ROOT_DIRECTORY/docker/$name/share/$name.sql | mysql -u root -proot $name
+			else
+				echo -e "${RED}* ${NC}Le repertoire de données existe déjà";
+			fi
+
 			# Fix Rights & Owner of files
 			echo -e "${RED}* ${NC}Fixing user and groups on directories";
 			echo -e "${RED}* ${NC}**";
