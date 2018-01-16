@@ -3,7 +3,7 @@
 REMOTE_SERVER_PATH="/home/ewallet/remote-dev";
 REMOTE_SERVER_ADDRESS="ewallet@10.10.0.35";
 REMOTE_UPDATE_URL="https://raw.githubusercontent.com/tellaw/deploykit/master/deployDevKit";
-
+REMOTE_DOCKER_UPDATE_URL="https://wekaservices@bitbucket.org/teamwekaservices/docker.git";
 
 LOCAL_ROOT_DIRECTORY="/data";
 opt="$1";
@@ -137,12 +137,20 @@ pull_kit()
 				cd $LOCAL_ROOT_DIRECTORY
 			fi
 
-			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
+			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker" ]; then
 		  		# Control will enter here if $DIRECTORY exists.
-				echo -e "${RED}* ${NC}Docker directory is going to be created";
-				cd $LOCAL_ROOT_DIRECTORY/docker
-				mkdir $name
+				echo -e "${RED}* ${NC}Clone du repository Docker";
 				cd $LOCAL_ROOT_DIRECTORY
+				git clone $REMOTE_DOCKER_UPDATE_URL
+			else
+				echo -e "${RED}* ${NC}Update du projet docker";
+				cd $LOCAL_ROOT_DIRECTORY/docker
+				git pull origin master
+			fi
+
+			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
+				echo -e "${RED}**** ${NC}Le kit docker $name n'existe pas"
+				exit 1
 			fi
 
 			# Fix Rights & Owner of files
@@ -168,7 +176,7 @@ pull_kit()
 
 			# Updating Docker
 			echo -e "${RED}* ${NC}Syncing DOCKER";
-			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name
+			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name/share
 
 			# Update shared
 			echo -e "${RED}* ${NC}Syncing src/shared";
