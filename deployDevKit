@@ -3,7 +3,7 @@
 REMOTE_SERVER_PATH="/home/ewallet/remote-dev";
 REMOTE_SERVER_ADDRESS="ewallet@10.10.0.35";
 REMOTE_UPDATE_URL="https://raw.githubusercontent.com/tellaw/deploykit/master/deployDevKit";
-REMOTE_DOCKER_UPDATE_URL="https://wekaservices@bitbucket.org/teamwekaservices/docker.git";
+
 
 LOCAL_ROOT_DIRECTORY="/data";
 opt="$1";
@@ -109,10 +109,10 @@ push_kit()
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
 
 			echo -e "${RED}* ${NC}Pushing kit DOCKER to REMOTE : $name";
-			rsync -ah $LOCAL_ROOT_DIRECTORY/docker/$name/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker
+			rsync -ah --progress $LOCAL_ROOT_DIRECTORY/docker/$name/share/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker
 
 			echo -e "${RED}* ${NC}Pushing sources to REMOTE";
-			rsync -ah $LOCAL_ROOT_DIRECTORY/src/$name/shared/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src
+			rsync -ah --progress $LOCAL_ROOT_DIRECTORY/src/$name/shared/ $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src
 		else
 			echo -e "${RED}* ${NC}Service is not available on REMOTE SERVER";
 			exit;
@@ -137,27 +137,12 @@ pull_kit()
 				cd $LOCAL_ROOT_DIRECTORY
 			fi
 
-			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker" ]; then
-		  		# Control will enter here if $DIRECTORY exists.
-				echo -e "${RED}* ${NC}Clone du repository Docker";
-				cd $LOCAL_ROOT_DIRECTORY
-				git clone $REMOTE_DOCKER_UPDATE_URL
-			else
-				echo -e "${RED}* ${NC}Update du projet docker";
-				cd $LOCAL_ROOT_DIRECTORY/docker
-				git pull origin master
-			fi
-
 			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name" ]; then
-				echo -e "${RED}**** ${NC}Le kit docker $name n'existe pas"
-				exit 1
-			fi
-
-			if ! [ -d "$LOCAL_ROOT_DIRECTORY/docker/$name/data" ]; then
-				echo -e "${RED}* ${NC}Le repertoire data n'existe pas. Import de la base SQL";
-				pv $LOCAL_ROOT_DIRECTORY/docker/$name/share/$name.sql | mysql -u root -proot $name
-			else
-				echo -e "${RED}* ${NC}Le repertoire de données existe déjà";
+		  		# Control will enter here if $DIRECTORY exists.
+				echo -e "${RED}* ${NC}Docker directory is going to be created";
+				cd $LOCAL_ROOT_DIRECTORY/docker
+				mkdir $name
+				cd $LOCAL_ROOT_DIRECTORY
 			fi
 
 			# Fix Rights & Owner of files
@@ -167,6 +152,10 @@ pull_kit()
 			echo -e "${RED}* ${NC}**";
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/src/$name
 			sudo chown -R $myuser:$mygroup $LOCAL_ROOT_DIRECTORY/docker/$name
+
+			# Updating Docker
+			echo -e "${RED}* ${NC}Syncing DOCKER";
+			rsync --progress -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name/share
 
 			# Grab docker deploy kit
 			echo -e "${RED}* ${NC}Update deployContainerKit using Git Version";
@@ -181,13 +170,9 @@ pull_kit()
 				exit 1
 			fi
 
-			# Updating Docker
-			echo -e "${RED}* ${NC}Syncing DOCKER";
-			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/docker/ $LOCAL_ROOT_DIRECTORY/docker/$name/share
-
 			# Update shared
 			echo -e "${RED}* ${NC}Syncing src/shared";
-			rsync -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src/ $LOCAL_ROOT_DIRECTORY/src/$name/shared
+			rsync --progress -ah $REMOTE_SERVER_ADDRESS:$REMOTE_SERVER_PATH/$name/src/ $LOCAL_ROOT_DIRECTORY/src/$name/shared
 
 			# Start DOCKER
 			cd $LOCAL_ROOT_DIRECTORY/docker/$name
@@ -195,6 +180,18 @@ pull_kit()
 			docker-compose up -d
 			if ! [ $? -eq 0 ]; then
 				echo -e "${RED}**** ${NC}Impossible de lancer les containers docker"
+				exit 1
+			fi
+
+			until [ "docker inspect -f {{.State.Status}} $name_db_1"=="running" ]; do
+					echo -e "${RED}**** ${NC}Attente du container docker DB"
+					sleep 0.1;
+			done;
+
+			echo -e "${RED}* ${NC}Import de la base";
+			docker-compose exec db sh -c "mysql -u root -proot $name < /share/dump.sql"
+			if ! [ $? -eq 0 ]; then
+				echo -e "${RED}**** ${NC}Impossible de charger la base SQL"
 				exit 1
 			fi
 
