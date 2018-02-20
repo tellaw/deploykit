@@ -115,7 +115,7 @@ done
 # Composer Install
 if ! [ "COMPOSER_ENABLED" == "" ];then
   cd $LOCAL_ROOT_DIRECTORY/releases/$BUILD_NUMBER
-  if ! composer update; then
+  if ! composer install; then
     echo -e "${RED}**** ${NC}Composer install FAILED"
     exit 1
   fi
